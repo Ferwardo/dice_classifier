@@ -24,9 +24,9 @@ if gpus:
 # where the d4 and d12 classes are not used
 dataset_path = "./image_set/dice"
 
-train_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/train", image_size=(480, 480),
+train_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/train", image_size=(227, 227),
                                                             seed=123, batch_size=32)
-test_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/valid", image_size=(480, 480),
+test_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/valid", image_size=(227, 227),
                                                            seed=123, batch_size=32)
 
 # caches images
@@ -41,7 +41,7 @@ test_dataset = test_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 model = tf.keras.models.Sequential([
     # Rescaling(1. / 255),  # rescale the colour of the image, so it is between 0 and 1
     # added this layer to see if this then takes 480 by 480 images, it does so yay
-    Conv2D(filters=96, kernel_size=(11, 11), strides=(4, 4), activation='relu', input_shape=(480, 480, 3)),
+    # Conv2D(filters=96, kernel_size=(11, 11), strides=(4, 4), activation='relu', input_shape=(480, 480, 3)),
     # Commented out the batch layers as it otherwise doesn't work
     # BatchNormalization(),
 
@@ -79,7 +79,7 @@ model.compile(optimizer="adam",
 model.fit(
     train_dataset,
     validation_data=test_dataset,
-    epochs=10,
+    epochs=30,
     shuffle=True,
     batch_size=32)
 
@@ -93,7 +93,7 @@ quantized_model.compile(optimizer='adam',
                         metrics=['accuracy'])
 
 # train the quantised model
-quantized_model.fit(train_dataset, batch_size=32, epochs=5)
+quantized_model.fit(train_dataset, validation_data=test_dataset, shuffle=True, batch_size=32, epochs=5)
 quantized_model.evaluate(test_dataset, verbose=2)
 
 # convert to tflite format
