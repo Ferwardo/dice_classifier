@@ -128,3 +128,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# the classifier header file is too big to fit into github
+dice_classifier.h
