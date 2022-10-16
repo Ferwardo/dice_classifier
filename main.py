@@ -1,5 +1,6 @@
 import os
 
+import tflite_interpreter
 import tensorflow as tf
 from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense, Flatten, Dropout
 import tensorflow_model_optimization as tfmot
@@ -64,7 +65,7 @@ model = tf.keras.models.Sequential([
     # Commented out the batch layers as it otherwise doesn't work
     # BatchNormalization(),
 
-    Conv2D(filters=24, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3)),
+    Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3)),
     # BatchNormalization(),
 
     MaxPool2D(pool_size=(3, 3)),
@@ -122,9 +123,17 @@ quantized_model.compile(optimizer='adam',
 quantized_model.fit(train_dataset, validation_data=test_dataset, shuffle=True, batch_size=32, epochs=5)
 quantized_model.evaluate(test_dataset, verbose=2)
 
+# def representative_data_gen():
+#     for input_value in tf.keras.utils.image_dataset_from_directory(dataset_path + "/train").batch(1).take(100):
+#         # Model has only one input so each data point has one element.
+#         yield [input_value]
+
+
 # convert to tflite format
 converter = tf.lite.TFLiteConverter.from_keras_model(quantized_model)
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
+# converter.representative_dataset = representative_data_gen
+converter.target_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 tf_model = converter.convert()
 
 if DICE_DATASET:
@@ -139,15 +148,15 @@ if DICE_DATASET:
 
     with open("dice_classifier.h", "w") as modified:
         modified.write("""
-    #ifndef __XCC__
-    #include <cmsis_compiler.h>
-    #else
-    #define __ALIGNED(x) __attribute__((aligned(x)))
-    #endif
-    #define MODEL_NAME "dice_classifier"
-    #define MODEL_INPUT_MEAN 0.0f
-    #define MODEL_INPUT_STD 255.0f\n
-        """ + data)
+#ifndef __XCC__
+#include <cmsis_compiler.h>
+#else
+#define __ALIGNED(x) __attribute__((aligned(x)))
+#endif
+#define MODEL_NAME "dice_classifier"
+#define MODEL_INPUT_MEAN 0.0f
+#define MODEL_INPUT_STD 255.0f\n
+""" + data)
 else:
     with open('flower_classifier.tflite', 'wb') as f:
         f.write(tf_model)
@@ -169,3 +178,20 @@ else:
     #define MODEL_INPUT_MEAN 0.0f
     #define MODEL_INPUT_STD 255.0f\n
         """ + data)
+
+# predict to see if it works
+if (DICE_DATASET):
+    import numpy as np
+
+    predict_set = tf.keras.utils.image_dataset_from_directory("./image_set/predict", image_size=image_size)
+    print("Normal model")
+    predictions = model.predict(predict_set)
+    print(predictions)
+
+    print("Quantized model")
+    predictions = quantized_model.predict(predict_set)
+    print(predictions)
+
+    print("With tflite interpreter")
+
+    tflite_interpreter.predict("dice_classifier")
