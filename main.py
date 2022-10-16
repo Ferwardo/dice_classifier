@@ -1,6 +1,5 @@
 import os
 
-import tflite_interpreter
 import tensorflow as tf
 from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense, Flatten, Dropout
 import tensorflow_model_optimization as tfmot
@@ -194,4 +193,5 @@ if (DICE_DATASET):
 
     print("With tflite interpreter")
 
+    import tflite_interpreter
     tflite_interpreter.predict("dice_classifier")

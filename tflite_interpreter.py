@@ -20,7 +20,7 @@ def predict(classifier_name):
     # Test with a D6
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
-    img1 = Image.open("D:/Masterproef_code/dice_classifier/image_set/predict/d6/d6_predict.jpg").resize(
+    img1 = Image.open("./image_set/predict/d6/d6_predict.jpg").resize(
         (width, height)).convert(mode="RGB")
     # img1 = Image.open("D:/Masterproef_code/dice_classifier/image_set/dice/train/d6/d6_color005.jpg").resize(
     #     (width, height)).convert(mode="RGB")
@@ -42,7 +42,7 @@ def predict(classifier_name):
         print('{:08.6f}: {}'.format(float(results1[i]), labels[i]))
 
     # Test with a D8
-    img2 = Image.open("D:/Masterproef_code/dice_classifier/image_set/predict/d8/d8_predict.jpg").resize(
+    img2 = Image.open("./image_set/predict/d8/d8_predict.jpg").resize(
         (width, height)).convert(mode="RGB")
     input_data2 = np.expand_dims(img2, axis=0).astype("float32")
 
@@ -61,7 +61,7 @@ def predict(classifier_name):
         print('{:08.6f}: {}'.format(float(results2[i]), labels[i]))
 
     # Test with a D20
-    img3 = Image.open("D:/Masterproef_code/dice_classifier/image_set/predict/d20/d20_predict.jpg").resize(
+    img3 = Image.open("./image_set/predict/d20/d20_predict.jpg").resize(
         (width, height)).convert(mode="RGB")
     input_data3 = np.expand_dims(img3, axis=0).astype("float32")
 
