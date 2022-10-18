@@ -4,11 +4,11 @@ import tensorflow as tf
 from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense, Flatten, Dropout
 import tensorflow_model_optimization as tfmot
 import keras.regularizers as regularizers
-
-# from keras.applications import MobileNet
+import matplotlib.pyplot as plt
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
+# setup
 DICE_DATASET = True
 
 gpus = tf.config.list_physical_devices('GPU')
@@ -25,6 +25,19 @@ if gpus:
 
 image_size = (227, 227)
 batch_size = 32
+
+
+def save_history(model_log, filepath):
+    plt.figure()
+    plt.plot(model_log.history['loss'])
+    plt.plot(model_log.history['val_loss'])
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Val'], loc='upper left')
+    plt.savefig(filepath)
+    plt.close()
+
 
 if DICE_DATASET:
     # get the dataset, used dataset is https://www.kaggle.com/datasets/ucffool/dice-d4-d6-d8-d10-d12-d20-images
@@ -105,17 +118,29 @@ model.compile(optimizer="adam",
 # checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath="checkpoints/checkpoint.ckpt", save_weights_only=True,
 #                                                 verbose=1, save_best_only=True)
 
-model.fit(
+# this is to balance the classes as otherwise the classification isn't good.
+class_weights = {
+    0: 2.0,
+    1: 1.0,
+    2: 2.6,
+    3: 2.3,
+    4: 1.2
+}
+
+history = model.fit(
     train_dataset,
     validation_data=test_dataset,
-    epochs=50,
+    epochs=20,
     shuffle=True,
     batch_size=batch_size,
+    class_weight=class_weights,
     # callbacks=[checkpoint]
 )
-
 model.summary()
-model.save_weights("./checkpoints/checkpoint_1", save_format="tf")
+
+save_history(history, 'model_20_epochs.png')
+# model.save_weights("./checkpoints/checkpoint_1", save_format="tf")
+# model.load_weights("./checkpoints/checkpoint_1")
 
 # quantise the model
 quantize_model = tfmot.quantization.keras.quantize_model
@@ -186,8 +211,6 @@ else:
 
 # predict to see if it works
 if (DICE_DATASET):
-    import numpy as np
-
     predict_set = tf.keras.utils.image_dataset_from_directory("./image_set/predict", image_size=image_size)
     print("Normal model")
     predictions = model.predict(predict_set)
