@@ -3,6 +3,7 @@ import os
 import tensorflow as tf
 from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense, Flatten, Dropout
 import tensorflow_model_optimization as tfmot
+import keras.regularizers as regularizers
 
 # from keras.applications import MobileNet
 
@@ -64,28 +65,33 @@ model = tf.keras.models.Sequential([
     # Commented out the batch layers as it otherwise doesn't work
     # BatchNormalization(),
 
-    Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3)),
+    Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3),
+           kernel_regularizer=regularizers.l2(0.001)),
     # BatchNormalization(),
 
     MaxPool2D(pool_size=(3, 3)),
-    Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same"),
+    Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
+           kernel_regularizer=regularizers.l2(0.001)),
     # BatchNormalization(),
 
     MaxPool2D(pool_size=(3, 3)),
-    Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same"),
+    Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
+           kernel_regularizer=regularizers.l2(0.001)),
     # BatchNormalization(),
 
-    Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same"),
+    Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
+           kernel_regularizer=regularizers.l2(0.001)),
     # BatchNormalization(),
 
-    Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same"),
+    Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
+           kernel_regularizer=regularizers.l2(0.001)),
     # BatchNormalization(),
 
     MaxPool2D(pool_size=(3, 3)),
     Flatten(),
-    Dense(512, activation='relu'),
+    Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
     Dropout(0.5),
-    Dense(512, activation='relu'),
+    Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
     Dropout(0.5),
     Dense(5, activation='softmax')
 ])
@@ -102,7 +108,7 @@ model.compile(optimizer="adam",
 model.fit(
     train_dataset,
     validation_data=test_dataset,
-    epochs=10,
+    epochs=50,
     shuffle=True,
     batch_size=batch_size,
     # callbacks=[checkpoint]
@@ -194,4 +200,5 @@ if (DICE_DATASET):
     print("With tflite interpreter")
 
     import tflite_interpreter
+
     tflite_interpreter.predict("dice_classifier")
