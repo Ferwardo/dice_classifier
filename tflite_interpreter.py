@@ -9,6 +9,8 @@ def load_labels(filename):
 
 
 def predict(classifier_name):
+    print("With tflite interpreter")
+
     # Load the TFLite model and allocate tensors.
     interpreter = tf.lite.Interpreter(model_path=classifier_name + ".tflite", )
     interpreter.allocate_tensors()
@@ -17,11 +19,13 @@ def predict(classifier_name):
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-    # Test with a D6
+    # Test with a D6 or rose
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
-    img1 = Image.open("./image_set/predict/d6/d6_predict.jpg").resize(
-        (width, height)).convert(mode="RGB")
+    if classifier_name == "dice_classifier":
+        img1 = Image.open("./image_set/dice/predict/d6/d6_predict.jpg").resize((width, height)).convert(mode="RGB")
+    else:
+        img1 = Image.open("./image_set/flowers/roses/download.jpg").resize((width, height)).convert(mode="RGB")
     # img1 = Image.open("D:/Masterproef_code/dice_classifier/image_set/dice/train/d6/d6_color005.jpg").resize(
     #     (width, height)).convert(mode="RGB")
     input_data1 = np.expand_dims(img1, axis=0).astype("float32")
@@ -41,9 +45,12 @@ def predict(classifier_name):
     for i in top_k1:
         print('{:08.6f}: {}'.format(float(results1[i]), labels[i]))
 
-    # Test with a D8
-    img2 = Image.open("./image_set/predict/d8/d8_predict.jpg").resize(
-        (width, height)).convert(mode="RGB")
+    # Test with a D8 or daisy
+    if classifier_name == "dice_classifier":
+        img2 = Image.open("./image_set/dice/predict/d8/d8_predict.jpg").resize((width, height)).convert(mode="RGB")
+    else:
+        img2 = Image.open("./image_set/flowers/daisy/download.jpg").resize((width, height)).convert(mode="RGB")
+
     input_data2 = np.expand_dims(img2, axis=0).astype("float32")
 
     interpreter.set_tensor(input_details[0]['index'], input_data2)
@@ -61,8 +68,11 @@ def predict(classifier_name):
         print('{:08.6f}: {}'.format(float(results2[i]), labels[i]))
 
     # Test with a D20
-    img3 = Image.open("./image_set/predict/d20/d20_predict.jpg").resize(
-        (width, height)).convert(mode="RGB")
+    if classifier_name == "dice_classifier":
+        img3 = Image.open("./image_set/dice/predict/d20/d20_predict.jpg").resize((width, height)).convert(mode="RGB")
+    else:
+        img3 = Image.open("./image_set/flowers/dandelion/5572197407_a0047238a6_b.jpg").resize((width, height)).convert(
+            mode="RGB")
     input_data3 = np.expand_dims(img3, axis=0).astype("float32")
 
     interpreter.set_tensor(input_details[0]['index'], input_data3)
@@ -78,7 +88,3 @@ def predict(classifier_name):
     print("\nD20: ")
     for i in top_k3:
         print('{:08.6f}: {}'.format(float(results3[i]), labels[i]))
-
-
-print("With tflite interpreter")
-predict("dice_classifier")

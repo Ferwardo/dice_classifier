@@ -1,15 +1,18 @@
 import os
 
+import keras
 import tensorflow as tf
-from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense, Flatten, Dropout
+from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense, Flatten, Dropout, LayerNormalization
 import tensorflow_model_optimization as tfmot
 import keras.regularizers as regularizers
 import matplotlib.pyplot as plt
+from keras.applications import MobileNet
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 # setup
 DICE_DATASET = True
+USE_MOBILENET = False
 
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
@@ -23,8 +26,16 @@ if gpus:
         # Memory growth must be set before GPUs have been initialized
         print(e)
 
-image_size = (227, 227)
+if USE_MOBILENET:
+    image_size = (224, 224)
+else:
+    image_size = (227, 227)
 batch_size = 32
+
+
+def load_labels(filename):
+    with open(filename, 'r') as f:
+        return [line.strip() for line in f.readlines()]
 
 
 def save_history(model_log, filepath):
@@ -38,7 +49,18 @@ def save_history(model_log, filepath):
     plt.savefig(filepath)
     plt.close()
 
+    plt.figure()
+    plt.plot(model_log.history['accuracy'])
+    plt.plot(model_log.history['val_accuracy'])
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Val'], loc='upper left')
+    plt.savefig("accuracy_" + filepath)
+    plt.close()
 
+
+# Load in the dataset depending on the set flag
 if DICE_DATASET:
     # get the dataset, used dataset is https://www.kaggle.com/datasets/ucffool/dice-d4-d6-d8-d10-d12-d20-images
     # where the d4 and d12 classes are not used
@@ -68,46 +90,50 @@ AUTOTUNE = tf.data.AUTOTUNE
 train_dataset = train_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 test_dataset = test_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 
-# too big in filesize it doesn't work maybe the optimizer will make it smaller
-# define the model, the architecture it is based on is AlexNet, layers are still based on it but not the parameters
-# more info see https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf
-# the original implementation (of alexnet) is found here:
-# https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98
-model = tf.keras.models.Sequential([
-    # Rescaling(1. / 255),  # rescale the colour of the image, so it is between 0 and 1
-    # Commented out the batch layers as it otherwise doesn't work
-    # BatchNormalization(),
+if USE_MOBILENET:
+    model = MobileNet((224, 224, 3))
+else:
 
-    Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3),
-           kernel_regularizer=regularizers.l2(0.001)),
-    # BatchNormalization(),
+    # too big in filesize it doesn't work maybe the optimizer will make it smaller
+    # define the model, the architecture it is based on is AlexNet, layers are still based on it but not the parameters
+    # more info see https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf
+    # the original implementation (of alexnet) is found here:
+    # https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98
+    model = tf.keras.models.Sequential([
+        # Rescaling(1. / 255),  # rescale the colour of the image, so it is between 0 and 1
+        # Commented out the batch layers as it otherwise doesn't work
+        # BatchNormalization(),
 
-    MaxPool2D(pool_size=(3, 3)),
-    Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
-           kernel_regularizer=regularizers.l2(0.001)),
-    # BatchNormalization(),
+        Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3),
+               kernel_regularizer=regularizers.l2(0.001)),
+        # BatchNormalization(),
 
-    MaxPool2D(pool_size=(3, 3)),
-    Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
-           kernel_regularizer=regularizers.l2(0.001)),
-    # BatchNormalization(),
+        MaxPool2D(pool_size=(3, 3)),
+        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
+               kernel_regularizer=regularizers.l2(0.001)),
+        # BatchNormalization(),
 
-    Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
-           kernel_regularizer=regularizers.l2(0.001)),
-    # BatchNormalization(),
+        MaxPool2D(pool_size=(3, 3)),
+        Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
+               kernel_regularizer=regularizers.l2(0.001)),
+        # BatchNormalization(),
 
-    Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
-           kernel_regularizer=regularizers.l2(0.001)),
-    # BatchNormalization(),
+        Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
+               kernel_regularizer=regularizers.l2(0.001)),
+        # BatchNormalization(),
 
-    MaxPool2D(pool_size=(3, 3)),
-    Flatten(),
-    Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
-    Dropout(0.5),
-    Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
-    Dropout(0.5),
-    Dense(5, activation='softmax')
-])
+        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
+               kernel_regularizer=regularizers.l2(0.001)),
+        # BatchNormalization(),
+
+        MaxPool2D(pool_size=(3, 3)),
+        Flatten(),
+        Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
+        Dropout(0.5),
+        Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
+        Dropout(0.5),
+        Dense(5, activation='softmax')
+    ])
 
 # compile and fit
 model.compile(optimizer="adam",
@@ -118,24 +144,34 @@ model.compile(optimizer="adam",
 # checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath="checkpoints/checkpoint.ckpt", save_weights_only=True,
 #                                                 verbose=1, save_best_only=True)
 
-# this is to balance the classes as otherwise the classification isn't good.
-class_weights = {
-    0: 2.0,
-    1: 1.0,
-    2: 2.6,
-    3: 2.3,
-    4: 1.2
-}
+if DICE_DATASET:
+    # this is to balance the classes as otherwise the classification isn't good.
+    class_weights = {
+        0: 2.0,
+        1: 1.0,
+        2: 2.6,
+        3: 2.3,
+        4: 1.2
+    }
 
-history = model.fit(
-    train_dataset,
-    validation_data=test_dataset,
-    epochs=20,
-    shuffle=True,
-    batch_size=batch_size,
-    class_weight=class_weights,
-    # callbacks=[checkpoint]
-)
+    history = model.fit(
+        train_dataset,
+        validation_data=test_dataset,
+        epochs=20,
+        shuffle=True,
+        batch_size=batch_size,
+        class_weight=class_weights,
+        # callbacks=[checkpoint]
+    )
+else:
+    history = model.fit(
+        train_dataset,
+        validation_data=test_dataset,
+        epochs=20,
+        shuffle=True,
+        batch_size=batch_size,
+        # callbacks=[checkpoint]
+    )
 model.summary()
 
 save_history(history, 'model_20_epochs.png')
@@ -145,13 +181,18 @@ save_history(history, 'model_20_epochs.png')
 # quantise the model
 quantize_model = tfmot.quantization.keras.quantize_model
 quantized_model = quantize_model(model)
+quantized_model = keras.Sequential([
+    Rescaling(1. / 255),
+    quantized_model
+])
+
 quantized_model.compile(optimizer='adam',
                         loss=tf.keras.losses.SparseCategoricalCrossentropy(),
                         metrics=['accuracy'])
 
 # train the quantised model
 quantized_model.fit(train_dataset, validation_data=test_dataset, shuffle=True, batch_size=32, epochs=5)
-quantized_model.evaluate(test_dataset, verbose=2)
+# quantized_model.evaluate(test_dataset, verbose=2)
 
 # def representative_data_gen():
 #     for input_value in tf.keras.utils.image_dataset_from_directory(dataset_path + "/train").batch(1).take(100):
@@ -163,7 +204,7 @@ quantized_model.evaluate(test_dataset, verbose=2)
 converter = tf.lite.TFLiteConverter.from_keras_model(quantized_model)
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
 # converter.representative_dataset = representative_data_gen
-converter.target_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+# converter.target_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 tf_model = converter.convert()
 
 if DICE_DATASET:
@@ -211,14 +252,25 @@ else:
 
 # predict to see if it works
 if (DICE_DATASET):
-    predict_set = tf.keras.utils.image_dataset_from_directory("./image_set/predict", image_size=image_size)
+    predict_set = tf.keras.utils.image_dataset_from_directory("./image_set/dice/predict", image_size=image_size)
     print("Normal model")
     predictions = model.predict(predict_set)
-    print(predictions)
+    labels = load_labels("labels.txt")
+
+    for j in predictions:
+        top_k1 = j.argsort()[-5:][::-1]
+        for i in top_k1:
+            print('{:08.6f}: {}'.format(float(j[i]), labels[i]))
+        print("\n")
 
     print("Quantized model")
     predictions = quantized_model.predict(predict_set)
-    print(predictions)
+
+    for j in predictions:
+        top_k1 = j.argsort()[-5:][::-1]
+        for i in top_k1:
+            print('{:08.6f}: {}'.format(float(j[i]), labels[i]))
+        print("\n")
 
     print("With tflite interpreter")
 
