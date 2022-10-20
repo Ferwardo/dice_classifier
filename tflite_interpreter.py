@@ -46,7 +46,9 @@ def predict(classifier_name):
     output_data1 = interpreter.get_tensor(output_details[0]['index'])
     results1 = np.squeeze(output_data1)
     top_k1 = results1.argsort()[-5:][::-1]
-    labels = load_labels("labels.txt")
+    print(results1)
+    print(top_k1)
+    labels = load_labels("dice_labels.txt")
 
     print("D6: ")
     for i in top_k1:
@@ -69,8 +71,10 @@ def predict(classifier_name):
     # The function `get_tensor()` returns a copy of the tensor data.
     # Use `tensor()` in order to get a pointer to the tensor.
     output_data2 = interpreter.get_tensor(output_details[0]['index'])
-    results2 = np.squeeze(output_data1)
+    results2 = np.squeeze(output_data2)
     top_k2 = results2.argsort()[-5:][::-1]
+    print(results2)
+    print(top_k2)
 
     print("\nD8: ")
     for i in top_k2:
@@ -94,8 +98,10 @@ def predict(classifier_name):
     # The function `get_tensor()` returns a copy of the tensor data.
     # Use `tensor()` in order to get a pointer to the tensor.
     output_data3 = interpreter.get_tensor(output_details[0]['index'])
-    results3 = np.squeeze(output_data1)
+    results3 = np.squeeze(output_data3)
     top_k3 = results3.argsort()[-5:][::-1]
+    print(results3)
+    print(top_k3)
 
     print("\nD20: ")
     for i in top_k3:

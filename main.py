@@ -88,6 +88,7 @@ else:
     test_dataset = tf.keras.utils.image_dataset_from_directory(data_dir, validation_split=0.2, subset="validation",
                                                                seed=123, image_size=image_size, batch_size=batch_size)
 
+print(train_dataset.class_names)
 
 # normalise the data
 def process(image, label):
