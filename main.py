@@ -2,7 +2,7 @@ import os
 
 import keras
 import tensorflow as tf
-from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense, Flatten, Dropout, LayerNormalization
+from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense, Flatten, Dropout
 import tensorflow_model_optimization as tfmot
 import keras.regularizers as regularizers
 import matplotlib.pyplot as plt
@@ -66,10 +66,14 @@ if DICE_DATASET:
     # where the d4 and d12 classes are not used
     dataset_path = "./image_set/dice"
 
-    train_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/train", image_size=image_size,
-                                                                seed=123, batch_size=batch_size)
-    test_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/valid", image_size=image_size,
-                                                               seed=123, batch_size=batch_size)
+    train_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/train",
+                                                                image_size=image_size,
+                                                                seed=123,
+                                                                batch_size=batch_size)
+    test_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/valid",
+                                                               image_size=image_size,
+                                                               seed=123,
+                                                               batch_size=batch_size)
 else:
     import pathlib
 
@@ -84,28 +88,36 @@ else:
     test_dataset = tf.keras.utils.image_dataset_from_directory(data_dir, validation_split=0.2, subset="validation",
                                                                seed=123, image_size=image_size, batch_size=batch_size)
 
+
+# normalise the data
+def process(image, label):
+    image = tf.cast(image / 255., tf.float32)
+    return image, label
+
+
+train_dataset = train_dataset.map(process)
+test_dataset = test_dataset.map(process)
+
 # caches images
 AUTOTUNE = tf.data.AUTOTUNE
 
-train_dataset = train_dataset.cache().prefetch(buffer_size=AUTOTUNE)
-test_dataset = test_dataset.cache().prefetch(buffer_size=AUTOTUNE)
+norm_train_dataset = train_dataset.cache().prefetch(buffer_size=AUTOTUNE)
+norm_test_dataset = test_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 
 if USE_MOBILENET:
     model = MobileNet((224, 224, 3))
 else:
-
-    # too big in filesize it doesn't work maybe the optimizer will make it smaller
-    # define the model, the architecture it is based on is AlexNet, layers are still based on it but not the parameters
-    # more info see https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf
+    # rescalingLayer = Rescaling(1. / 255)
+    # Define the model, the architecture this model is based on is AlexNet, layers are still based on it but not the
+    # parameters more info see https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf
     # the original implementation (of alexnet) is found here:
     # https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98
     model = tf.keras.models.Sequential([
-        # Rescaling(1. / 255),  # rescale the colour of the image, so it is between 0 and 1
-        # Commented out the batch layers as it otherwise doesn't work
-        # BatchNormalization(),
+        # rescalingLayer,  # rescale the image, so its values are between 0 and 1
 
-        Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3),
+        Conv2D(filters=64, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3),
                kernel_regularizer=regularizers.l2(0.001)),
+        # Commented out the batch normalisation layers as it otherwise doesn't work
         # BatchNormalization(),
 
         MaxPool2D(pool_size=(3, 3)),
@@ -114,16 +126,16 @@ else:
         # BatchNormalization(),
 
         MaxPool2D(pool_size=(3, 3)),
-        Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
+        # Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
+        #        kernel_regularizer=regularizers.l2(0.001)),
+        # BatchNormalization(),
+
+        Conv2D(filters=16, kernel_size=(3, 3), activation='relu', padding="same",
                kernel_regularizer=regularizers.l2(0.001)),
         # BatchNormalization(),
 
-        Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
-               kernel_regularizer=regularizers.l2(0.001)),
-        # BatchNormalization(),
-
-        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
-               kernel_regularizer=regularizers.l2(0.001)),
+        # Conv2D(filters=16, kernel_size=(3, 3), activation='relu', padding="same",
+        #        kernel_regularizer=regularizers.l2(0.001)),
         # BatchNormalization(),
 
         MaxPool2D(pool_size=(3, 3)),
@@ -131,18 +143,19 @@ else:
         Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
         Dropout(0.5),
         Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
-        Dropout(0.5),
+        Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
+        # Dropout(0.5),
         Dense(5, activation='softmax')
     ])
 
-# compile and fit
-model.compile(optimizer="adam",
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(),
-              metrics=["accuracy"])
+    # compile and fit
+    model.compile(optimizer="adam",
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                  metrics=["accuracy"])
 
-# checkpoint to save the best model weight from the training
-# checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath="checkpoints/checkpoint.ckpt", save_weights_only=True,
-#                                                 verbose=1, save_best_only=True)
+    # checkpoint to save the best model weight from the training
+    # checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath="checkpoints/checkpoint.ckpt", save_weights_only=True,
+    #                                                 verbose=1, save_best_only=True)
 
 if DICE_DATASET:
     # this is to balance the classes as otherwise the classification isn't good.
@@ -155,9 +168,9 @@ if DICE_DATASET:
     }
 
     history = model.fit(
-        train_dataset,
-        validation_data=test_dataset,
-        epochs=20,
+        norm_train_dataset,
+        validation_data=norm_test_dataset,
+        epochs=10,
         shuffle=True,
         batch_size=batch_size,
         class_weight=class_weights,
@@ -165,26 +178,27 @@ if DICE_DATASET:
     )
 else:
     history = model.fit(
-        train_dataset,
-        validation_data=test_dataset,
-        epochs=20,
+        norm_train_dataset,
+        validation_data=norm_test_dataset,
+        epochs=10,
         shuffle=True,
         batch_size=batch_size,
         # callbacks=[checkpoint]
     )
 model.summary()
 
-save_history(history, 'model_20_epochs.png')
+save_history(history, 'model_10_epochs.png')
+
 # model.save_weights("./checkpoints/checkpoint_1", save_format="tf")
 # model.load_weights("./checkpoints/checkpoint_1")
 
 # quantise the model
 quantize_model = tfmot.quantization.keras.quantize_model
 quantized_model = quantize_model(model)
-quantized_model = keras.Sequential([
-    Rescaling(1. / 255),
-    quantized_model
-])
+# quantized_model = keras.Sequential([
+#     Rescaling(1. / 255),
+#     quantized_model
+# ])
 
 quantized_model.compile(optimizer='adam',
                         loss=tf.keras.losses.SparseCategoricalCrossentropy(),
@@ -192,13 +206,12 @@ quantized_model.compile(optimizer='adam',
 
 # train the quantised model
 quantized_model.fit(train_dataset, validation_data=test_dataset, shuffle=True, batch_size=32, epochs=5)
-# quantized_model.evaluate(test_dataset, verbose=2)
+print(quantized_model.evaluate(test_dataset, verbose=2))
 
 # def representative_data_gen():
 #     for input_value in tf.keras.utils.image_dataset_from_directory(dataset_path + "/train").batch(1).take(100):
 #         # Model has only one input so each data point has one element.
 #         yield [input_value]
-
 
 # convert to tflite format
 converter = tf.lite.TFLiteConverter.from_keras_model(quantized_model)
@@ -219,15 +232,15 @@ if DICE_DATASET:
 
     with open("dice_classifier.h", "w") as modified:
         modified.write("""
-#ifndef __XCC__
-#include <cmsis_compiler.h>
-#else
-#define __ALIGNED(x) __attribute__((aligned(x)))
-#endif
-#define MODEL_NAME "dice_classifier"
-#define MODEL_INPUT_MEAN 0.0f
-#define MODEL_INPUT_STD 255.0f\n
-""" + data)
+    #ifndef __XCC__
+    #include <cmsis_compiler.h>
+    #else
+    #define __ALIGNED(x) __attribute__((aligned(x)))
+    #endif
+    #define MODEL_NAME "dice_classifier"
+    #define MODEL_INPUT_MEAN 0.0f
+    #define MODEL_INPUT_STD 255.0f\n
+    """ + data)
 else:
     with open('flower_classifier.tflite', 'wb') as f:
         f.write(tf_model)
@@ -251,28 +264,31 @@ else:
         """ + data)
 
 # predict to see if it works
-if (DICE_DATASET):
+if DICE_DATASET:
     predict_set = tf.keras.utils.image_dataset_from_directory("./image_set/dice/predict", image_size=image_size)
+    norm_predict_set = predict_set.map(process)
+
     print("Normal model")
-    predictions = model.predict(predict_set)
-    labels = load_labels("labels.txt")
+    predictions = model.predict(norm_predict_set)
+    labels = load_labels("dice_labels.txt")
+    print(predictions)
 
     for j in predictions:
+        print(j)
         top_k1 = j.argsort()[-5:][::-1]
         for i in top_k1:
             print('{:08.6f}: {}'.format(float(j[i]), labels[i]))
         print("\n")
 
     print("Quantized model")
-    predictions = quantized_model.predict(predict_set)
+    predictions = quantized_model.predict(norm_predict_set)
 
     for j in predictions:
+        print(j)
         top_k1 = j.argsort()[-5:][::-1]
         for i in top_k1:
             print('{:08.6f}: {}'.format(float(j[i]), labels[i]))
         print("\n")
-
-    print("With tflite interpreter")
 
     import tflite_interpreter
 

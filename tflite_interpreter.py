@@ -8,6 +8,11 @@ def load_labels(filename):
         return [line.strip() for line in f.readlines()]
 
 
+def normalize_image(image):
+    array = np.array(image).astype(np.float32) / 255.0
+    return Image.fromarray(array.astype('uint8'), 'RGB')
+
+
 def predict(classifier_name):
     print("With tflite interpreter")
 
@@ -26,6 +31,8 @@ def predict(classifier_name):
         img1 = Image.open("./image_set/dice/predict/d6/d6_predict.jpg").resize((width, height)).convert(mode="RGB")
     else:
         img1 = Image.open("./image_set/flowers/roses/download.jpg").resize((width, height)).convert(mode="RGB")
+
+    img1 = normalize_image(img1)
     # img1 = Image.open("D:/Masterproef_code/dice_classifier/image_set/dice/train/d6/d6_color005.jpg").resize(
     #     (width, height)).convert(mode="RGB")
     input_data1 = np.expand_dims(img1, axis=0).astype("float32")
@@ -46,11 +53,13 @@ def predict(classifier_name):
         print('{:08.6f}: {}'.format(float(results1[i]), labels[i]))
 
     # Test with a D8 or daisy
+    img1.close()
     if classifier_name == "dice_classifier":
         img2 = Image.open("./image_set/dice/predict/d8/d8_predict.jpg").resize((width, height)).convert(mode="RGB")
     else:
         img2 = Image.open("./image_set/flowers/daisy/download.jpg").resize((width, height)).convert(mode="RGB")
 
+    img2 = normalize_image(img2)
     input_data2 = np.expand_dims(img2, axis=0).astype("float32")
 
     interpreter.set_tensor(input_details[0]['index'], input_data2)
@@ -68,11 +77,14 @@ def predict(classifier_name):
         print('{:08.6f}: {}'.format(float(results2[i]), labels[i]))
 
     # Test with a D20
+    img2.close()
     if classifier_name == "dice_classifier":
         img3 = Image.open("./image_set/dice/predict/d20/d20_predict.jpg").resize((width, height)).convert(mode="RGB")
     else:
         img3 = Image.open("./image_set/flowers/dandelion/5572197407_a0047238a6_b.jpg").resize((width, height)).convert(
             mode="RGB")
+
+    img3 = normalize_image(img3)
     input_data3 = np.expand_dims(img3, axis=0).astype("float32")
 
     interpreter.set_tensor(input_details[0]['index'], input_data3)
