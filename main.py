@@ -13,6 +13,7 @@ from keras.applications import MobileNet
 # setup
 DICE_DATASET = True
 USE_MOBILENET = False
+EPOCHS = 40
 
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
@@ -90,6 +91,7 @@ else:
 
 print(train_dataset.class_names)
 
+
 # normalise the data
 def process(image, label):
     image = tf.cast(image / 255., tf.float32)
@@ -108,17 +110,13 @@ norm_test_dataset = test_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 if USE_MOBILENET:
     model = MobileNet((224, 224, 3))
 else:
-    # rescalingLayer = Rescaling(1. / 255)
     # Define the model, the architecture this model is based on is AlexNet, layers are still based on it but not the
-    # parameters more info see https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf
+    # parameters more info see https://dl.acm.org/doi/abs/10.1145/3065386
     # the original implementation (of alexnet) is found here:
     # https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98
     model = tf.keras.models.Sequential([
-        # rescalingLayer,  # rescale the image, so its values are between 0 and 1
-
-        Conv2D(filters=64, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3),
+        Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3),
                kernel_regularizer=regularizers.l2(0.001)),
-        # Commented out the batch normalisation layers as it otherwise doesn't work
         # BatchNormalization(),
 
         MaxPool2D(pool_size=(3, 3)),
@@ -127,16 +125,16 @@ else:
         # BatchNormalization(),
 
         MaxPool2D(pool_size=(3, 3)),
-        # Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
-        #        kernel_regularizer=regularizers.l2(0.001)),
-        # BatchNormalization(),
-
-        Conv2D(filters=16, kernel_size=(3, 3), activation='relu', padding="same",
+        Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
                kernel_regularizer=regularizers.l2(0.001)),
         # BatchNormalization(),
 
-        # Conv2D(filters=16, kernel_size=(3, 3), activation='relu', padding="same",
-        #        kernel_regularizer=regularizers.l2(0.001)),
+        Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
+               kernel_regularizer=regularizers.l2(0.001)),
+        # BatchNormalization(),
+
+        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
+               kernel_regularizer=regularizers.l2(0.001)),
         # BatchNormalization(),
 
         MaxPool2D(pool_size=(3, 3)),
@@ -144,8 +142,7 @@ else:
         Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
         Dropout(0.5),
         Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
-        Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
-        # Dropout(0.5),
+        Dropout(0.5),
         Dense(5, activation='softmax')
     ])
 
@@ -171,7 +168,7 @@ if DICE_DATASET:
     history = model.fit(
         norm_train_dataset,
         validation_data=norm_test_dataset,
-        epochs=10,
+        epochs=EPOCHS,
         shuffle=True,
         batch_size=batch_size,
         class_weight=class_weights,
@@ -181,14 +178,14 @@ else:
     history = model.fit(
         norm_train_dataset,
         validation_data=norm_test_dataset,
-        epochs=10,
+        epochs=EPOCHS,
         shuffle=True,
         batch_size=batch_size,
         # callbacks=[checkpoint]
     )
 model.summary()
 
-save_history(history, 'model_10_epochs.png')
+save_history(history, 'model_20_epochs.png')
 
 # model.save_weights("./checkpoints/checkpoint_1", save_format="tf")
 # model.load_weights("./checkpoints/checkpoint_1")
@@ -206,8 +203,10 @@ quantized_model.compile(optimizer='adam',
                         metrics=['accuracy'])
 
 # train the quantised model
-quantized_model.fit(train_dataset, validation_data=test_dataset, shuffle=True, batch_size=32, epochs=5)
-print(quantized_model.evaluate(test_dataset, verbose=2))
+quantized_history = quantized_model.fit(train_dataset, validation_data=test_dataset, shuffle=True, batch_size=32,
+                                        epochs=int(EPOCHS / 2))
+print(quantized_model.evaluate(test_dataset, verbose=1))
+save_history(quantized_history, 'quantized_model_20_epochs.png')
 
 # def representative_data_gen():
 #     for input_value in tf.keras.utils.image_dataset_from_directory(dataset_path + "/train").batch(1).take(100):
@@ -233,15 +232,15 @@ if DICE_DATASET:
 
     with open("dice_classifier.h", "w") as modified:
         modified.write("""
-    #ifndef __XCC__
-    #include <cmsis_compiler.h>
-    #else
-    #define __ALIGNED(x) __attribute__((aligned(x)))
-    #endif
-    #define MODEL_NAME "dice_classifier"
-    #define MODEL_INPUT_MEAN 0.0f
-    #define MODEL_INPUT_STD 255.0f\n
-    """ + data)
+#ifndef __XCC__
+#include <cmsis_compiler.h>
+#else
+#define __ALIGNED(x) __attribute__((aligned(x)))
+#endif
+#define MODEL_NAME "dice_classifier"
+#define MODEL_INPUT_MEAN 0.0f
+#define MODEL_INPUT_STD 255.0f\n
+""" + data)
 else:
     with open('flower_classifier.tflite', 'wb') as f:
         f.write(tf_model)
@@ -254,25 +253,30 @@ else:
 
     with open("flower_classifier.h", "w") as modified:
         modified.write("""
-    #ifndef __XCC__
-    #include <cmsis_compiler.h>
-    #else
-    #define __ALIGNED(x) __attribute__((aligned(x)))
-    #endif
-    #define MODEL_NAME "dice_classifier"
-    #define MODEL_INPUT_MEAN 0.0f
-    #define MODEL_INPUT_STD 255.0f\n
-        """ + data)
+#ifndef __XCC__
+#include <cmsis_compiler.h>
+#else
+#define __ALIGNED(x) __attribute__((aligned(x)))
+#endif
+#define MODEL_NAME "dice_classifier"
+#define MODEL_INPUT_MEAN 0.0f
+#define MODEL_INPUT_STD 255.0f\n
+""" + data)
 
 # predict to see if it works
 if DICE_DATASET:
-    predict_set = tf.keras.utils.image_dataset_from_directory("./image_set/dice/predict", image_size=image_size)
+    predict_set = tf.keras.utils.image_dataset_from_directory("./image_set/dice/predict", image_size=image_size,
+                                                              seed=123)
     norm_predict_set = predict_set.map(process)
 
     print("Normal model")
-    predictions = model.predict(norm_predict_set)
+    predictions = model.predict(norm_predict_set, verbose=1)
     labels = load_labels("dice_labels.txt")
-    print(predictions)
+
+    class_names = predict_set.class_names
+    for images, image_labels in predict_set.take(1):
+        for i in range(len(image_labels)):
+            print(class_names[image_labels[i]])
 
     for j in predictions:
         print(j)
@@ -282,7 +286,7 @@ if DICE_DATASET:
         print("\n")
 
     print("Quantized model")
-    predictions = quantized_model.predict(norm_predict_set)
+    predictions = quantized_model.predict(norm_predict_set, verbose=1)
 
     for j in predictions:
         print(j)

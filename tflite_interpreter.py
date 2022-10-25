@@ -33,8 +33,7 @@ def predict(classifier_name):
         img1 = Image.open("./image_set/flowers/roses/download.jpg").resize((width, height)).convert(mode="RGB")
 
     img1 = normalize_image(img1)
-    # img1 = Image.open("D:/Masterproef_code/dice_classifier/image_set/dice/train/d6/d6_color005.jpg").resize(
-    #     (width, height)).convert(mode="RGB")
+
     input_data1 = np.expand_dims(img1, axis=0).astype("float32")
 
     interpreter.set_tensor(input_details[0]['index'], input_data1)
@@ -62,6 +61,7 @@ def predict(classifier_name):
         img2 = Image.open("./image_set/flowers/daisy/download.jpg").resize((width, height)).convert(mode="RGB")
 
     img2 = normalize_image(img2)
+
     input_data2 = np.expand_dims(img2, axis=0).astype("float32")
 
     interpreter.set_tensor(input_details[0]['index'], input_data2)
@@ -89,6 +89,7 @@ def predict(classifier_name):
             mode="RGB")
 
     img3 = normalize_image(img3)
+
     input_data3 = np.expand_dims(img3, axis=0).astype("float32")
 
     interpreter.set_tensor(input_details[0]['index'], input_data3)
@@ -106,3 +107,4 @@ def predict(classifier_name):
     print("\nD20: ")
     for i in top_k3:
         print('{:08.6f}: {}'.format(float(results3[i]), labels[i]))
+
