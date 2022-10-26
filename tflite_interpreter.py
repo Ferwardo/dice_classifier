@@ -28,9 +28,11 @@ def predict(classifier_name):
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
     if classifier_name == "dice_classifier":
-        img1 = Image.open("./image_set/dice/predict/d6/d6_predict.jpg").resize((width, height)).convert(mode="RGB")
+        img1 = Image.open("./image_set/dice/predict/d6/d6_predict.jpg").resize((width, height)) \
+            .convert(mode="RGB")
     else:
-        img1 = Image.open("./image_set/flowers/roses/download.jpg").resize((width, height)).convert(mode="RGB")
+        img1 = Image.open("./image_set/flowers/roses/download.jpg").resize((width, height)) \
+            .convert(mode="RGB")
 
     img1 = normalize_image(img1)
 
@@ -56,9 +58,11 @@ def predict(classifier_name):
     # Test with a D8 or daisy
     img1.close()
     if classifier_name == "dice_classifier":
-        img2 = Image.open("./image_set/dice/predict/d8/d8_predict.jpg").resize((width, height)).convert(mode="RGB")
+        img2 = Image.open("./image_set/dice/predict/d8/d8_predict.jpg").resize((width, height)) \
+            .convert(mode="RGB")
     else:
-        img2 = Image.open("./image_set/flowers/daisy/download.jpg").resize((width, height)).convert(mode="RGB")
+        img2 = Image.open("./image_set/flowers/daisy/download.jpg").resize((width, height)) \
+            .convert(mode="RGB")
 
     img2 = normalize_image(img2)
 
@@ -83,10 +87,11 @@ def predict(classifier_name):
     # Test with a D20
     img2.close()
     if classifier_name == "dice_classifier":
-        img3 = Image.open("./image_set/dice/predict/d20/d20_predict.jpg").resize((width, height)).convert(mode="RGB")
+        img3 = Image.open("./image_set/dice/predict/d20/d20_predict.jpg").resize((width, height)) \
+            .convert(mode="RGB")
     else:
-        img3 = Image.open("./image_set/flowers/dandelion/5572197407_a0047238a6_b.jpg").resize((width, height)).convert(
-            mode="RGB")
+        img3 = Image.open("./image_set/flowers/dandelion/5572197407_a0047238a6_b.jpg").resize((width, height)) \
+            .convert(mode="RGB")
 
     img3 = normalize_image(img3)
 
@@ -107,4 +112,3 @@ def predict(classifier_name):
     print("\nD20: ")
     for i in top_k3:
         print('{:08.6f}: {}'.format(float(results3[i]), labels[i]))
-

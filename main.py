@@ -13,7 +13,7 @@ from keras.applications import MobileNet
 # setup
 DICE_DATASET = True
 USE_MOBILENET = False
-EPOCHS = 40
+EPOCHS = 60
 
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
@@ -185,7 +185,7 @@ else:
     )
 model.summary()
 
-save_history(history, 'model_20_epochs.png')
+save_history(history, 'model_'+str(EPOCHS)+'_epochs.png')
 
 # model.save_weights("./checkpoints/checkpoint_1", save_format="tf")
 # model.load_weights("./checkpoints/checkpoint_1")
@@ -204,9 +204,10 @@ quantized_model.compile(optimizer='adam',
 
 # train the quantised model
 quantized_history = quantized_model.fit(train_dataset, validation_data=test_dataset, shuffle=True, batch_size=32,
-                                        epochs=int(EPOCHS / 2))
+                                        epochs=int(EPOCHS / 4))
 print(quantized_model.evaluate(test_dataset, verbose=1))
-save_history(quantized_history, 'quantized_model_20_epochs.png')
+save_history(quantized_history, 'quantized_model_'+str(int(EPOCHS/4))+'_epochs.png')
+quantized_model.save("./quantized_model")
 
 # def representative_data_gen():
 #     for input_value in tf.keras.utils.image_dataset_from_directory(dataset_path + "/train").batch(1).take(100):
@@ -214,7 +215,7 @@ save_history(quantized_history, 'quantized_model_20_epochs.png')
 #         yield [input_value]
 
 # convert to tflite format
-converter = tf.lite.TFLiteConverter.from_keras_model(quantized_model)
+converter = tf.lite.TFLiteConverter.from_saved_model("./quantized_model")
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
 # converter.representative_dataset = representative_data_gen
 # converter.target_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
