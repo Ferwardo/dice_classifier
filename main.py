@@ -65,7 +65,7 @@ def save_history(model_log, filepath):
 if DICE_DATASET:
     # get the dataset, used dataset is https://www.kaggle.com/datasets/ucffool/dice-d4-d6-d8-d10-d12-d20-images
     # where the d4 and d12 classes are not used
-    dataset_path = "./image_set/dice"
+    dataset_path = "./image_set/dice_230"
 
     train_dataset = tf.keras.utils.image_dataset_from_directory(dataset_path + "/train",
                                                                 image_size=image_size,
