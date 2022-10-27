@@ -208,6 +208,7 @@ quantized_history = quantized_model.fit(train_dataset, validation_data=test_data
 print(quantized_model.evaluate(test_dataset, verbose=1))
 save_history(quantized_history, 'quantized_model_'+str(int(EPOCHS/4))+'_epochs.png')
 quantized_model.save("./quantized_model")
+model.save("./model")
 
 # def representative_data_gen():
 #     for input_value in tf.keras.utils.image_dataset_from_directory(dataset_path + "/train").batch(1).take(100):

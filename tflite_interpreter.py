@@ -28,15 +28,16 @@ def predict(classifier_name):
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
     if classifier_name == "dice_classifier":
-        img1 = Image.open("./image_set/dice/predict/d6/d6_predict.jpg").resize((width, height)) \
-            .convert(mode="RGB")
+        img1 = tf.keras.utils.load_img(
+            "./image_set/dice/predict/d6/d6_predict.jpg", target_size=(width, height)
+        )
     else:
-        img1 = Image.open("./image_set/flowers/roses/download.jpg").resize((width, height)) \
-            .convert(mode="RGB")
+        img1 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width,height))
 
-    img1 = normalize_image(img1)
 
-    input_data1 = np.expand_dims(img1, axis=0).astype("float32")
+    img1 = tf.keras.utils.img_to_array(img1)
+
+    input_data1 = tf.expand_dims(img1, axis=0)/255
 
     interpreter.set_tensor(input_details[0]['index'], input_data1)
 
@@ -49,6 +50,7 @@ def predict(classifier_name):
     top_k1 = results1.argsort()[-5:][::-1]
     print(results1)
     print(top_k1)
+
     labels = load_labels("dice_labels.txt")
 
     print("D6: ")
@@ -56,17 +58,16 @@ def predict(classifier_name):
         print('{:08.6f}: {}'.format(float(results1[i]), labels[i]))
 
     # Test with a D8 or daisy
-    img1.close()
     if classifier_name == "dice_classifier":
-        img2 = Image.open("./image_set/dice/predict/d8/d8_predict.jpg").resize((width, height)) \
-            .convert(mode="RGB")
+        img2 = tf.keras.utils.load_img(
+            "./image_set/dice/predict/d8/d8_predict.jpg", target_size=(width, height)
+        )
     else:
-        img2 = Image.open("./image_set/flowers/daisy/download.jpg").resize((width, height)) \
-            .convert(mode="RGB")
+        img2 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
 
-    img2 = normalize_image(img2)
+    img2 = tf.keras.utils.img_to_array(img2)
 
-    input_data2 = np.expand_dims(img2, axis=0).astype("float32")
+    input_data2 = tf.expand_dims(img2, axis=0)/255
 
     interpreter.set_tensor(input_details[0]['index'], input_data2)
 
@@ -85,17 +86,16 @@ def predict(classifier_name):
         print('{:08.6f}: {}'.format(float(results2[i]), labels[i]))
 
     # Test with a D20
-    img2.close()
     if classifier_name == "dice_classifier":
-        img3 = Image.open("./image_set/dice/predict/d20/d20_predict.jpg").resize((width, height)) \
-            .convert(mode="RGB")
+        img3 = tf.keras.utils.load_img(
+            "./image_set/dice/predict/d20/d20_predict.jpg", target_size=(width, height)
+        )
     else:
-        img3 = Image.open("./image_set/flowers/dandelion/5572197407_a0047238a6_b.jpg").resize((width, height)) \
-            .convert(mode="RGB")
+        img3 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
 
-    img3 = normalize_image(img3)
+    img3 = tf.keras.utils.img_to_array(img3)
 
-    input_data3 = np.expand_dims(img3, axis=0).astype("float32")
+    input_data3 = tf.expand_dims(img3, axis=0) / 255
 
     interpreter.set_tensor(input_details[0]['index'], input_data3)
 
