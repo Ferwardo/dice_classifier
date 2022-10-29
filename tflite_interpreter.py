@@ -8,9 +8,16 @@ def load_labels(filename):
         return [line.strip() for line in f.readlines()]
 
 
-def normalize_image(image):
-    array = np.array(image).astype(np.float32) / 255.0
-    return Image.fromarray(array.astype('uint8'), 'RGB')
+def export_preprocessed_image_as_byte_array(image_name, image_dir):
+    image = tf.keras.utils.load_img(image_dir + image_name, target_size=(227, 227))
+    img1 = tf.keras.utils.img_to_array(image)
+    array = tf.expand_dims(img1, axis=0) / 255
+    byte_array = tf.io.serialize_tensor(tf.squeeze(array)).numpy()
+
+    file = open("./image_set/preprocessed_"+image_name+".bin", "wb")
+    file.write(byte_array)
+    file.close()
+    return byte_array
 
 
 def predict(classifier_name):
@@ -32,12 +39,11 @@ def predict(classifier_name):
             "./image_set/dice/predict/d6/d6_predict.jpg", target_size=(width, height)
         )
     else:
-        img1 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width,height))
-
+        img1 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
 
     img1 = tf.keras.utils.img_to_array(img1)
 
-    input_data1 = tf.expand_dims(img1, axis=0)/255
+    input_data1 = tf.expand_dims(img1, axis=0) / 255
 
     interpreter.set_tensor(input_details[0]['index'], input_data1)
 
@@ -67,7 +73,7 @@ def predict(classifier_name):
 
     img2 = tf.keras.utils.img_to_array(img2)
 
-    input_data2 = tf.expand_dims(img2, axis=0)/255
+    input_data2 = tf.expand_dims(img2, axis=0) / 255
 
     interpreter.set_tensor(input_details[0]['index'], input_data2)
 
