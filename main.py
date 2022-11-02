@@ -30,7 +30,7 @@ if gpus:
 if USE_MOBILENET:
     image_size = (224, 224)
 else:
-    image_size = (227, 227)
+    image_size = (230, 230)
 batch_size = 32
 
 
@@ -94,7 +94,7 @@ print(train_dataset.class_names)
 
 # normalise the data
 def process(image, label):
-    image = tf.cast(image / 255., tf.float32)
+    image = tf.cast(image / 255.0, tf.float32)
     return image, label
 
 
@@ -115,7 +115,7 @@ else:
     # the original implementation (of alexnet) is found here:
     # https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98
     model = tf.keras.models.Sequential([
-        Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(227, 227, 3),
+        Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(230, 230, 3),
                kernel_regularizer=regularizers.l2(0.001)),
         # BatchNormalization(),
 
@@ -210,16 +210,20 @@ save_history(quantized_history, 'quantized_model_'+str(int(EPOCHS/4))+'_epochs.p
 quantized_model.save("./quantized_model")
 model.save("./model")
 
-# def representative_data_gen():
-#     for input_value in tf.keras.utils.image_dataset_from_directory(dataset_path + "/train").batch(1).take(100):
-#         # Model has only one input so each data point has one element.
-#         yield [input_value]
+# def representative_dataset():
+#   for data in train_dataset:
+#     yield {
+#       "image": data.image,
+#       "bias": data.bias,
+#     }
 
 # convert to tflite format
 converter = tf.lite.TFLiteConverter.from_saved_model("./quantized_model")
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
-# converter.representative_dataset = representative_data_gen
-# converter.target_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+# converter.representative_dataset = representative_dataset
+# converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+# converter.inference_input_type = tf.uint8  # or tf.int8
+# converter.inference_output_type = tf.uint8  # or tf.int8
 tf_model = converter.convert()
 
 if DICE_DATASET:

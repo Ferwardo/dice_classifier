@@ -9,7 +9,7 @@ def load_labels(filename):
 
 
 def export_preprocessed_image_as_byte_array(image_name, image_dir):
-    image = tf.keras.utils.load_img(image_dir + image_name, target_size=(227, 227))
+    image = tf.keras.utils.load_img(image_dir + image_name, target_size=(230, 230))
     img1 = tf.keras.utils.img_to_array(image)
     array = tf.expand_dims(img1, axis=0) / 255
     byte_array = tf.io.serialize_tensor(tf.squeeze(array)).numpy()
