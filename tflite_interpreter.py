@@ -14,7 +14,7 @@ def export_preprocessed_image_as_byte_array(image_name, image_dir):
     array = tf.expand_dims(img1, axis=0) / 255
     byte_array = tf.io.serialize_tensor(tf.squeeze(array)).numpy()
 
-    file = open("./image_set/preprocessed_"+image_name+".bin", "wb")
+    file = open("./image_set/"+image_name+".bin", "wb")
     file.write(byte_array)
     file.close()
     return byte_array
@@ -118,3 +118,59 @@ def predict(classifier_name):
     print("\nD20: ")
     for i in top_k3:
         print('{:08.6f}: {}'.format(float(results3[i]), labels[i]))
+
+    # Test with a second D20
+    if classifier_name == "dice_classifier":
+        img4 = tf.keras.utils.load_img(
+            "./image_set/d20_predict2.jpg", target_size=(width, height)
+        )
+    else:
+        img4 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
+
+    img4 = tf.keras.utils.img_to_array(img4)
+
+    input_data4 = tf.expand_dims(img4, axis=0) / 255
+
+    interpreter.set_tensor(input_details[0]['index'], input_data4)
+
+    interpreter.invoke()
+
+    # The function `get_tensor()` returns a copy of the tensor data.
+    # Use `tensor()` in order to get a pointer to the tensor.
+    output_data4 = interpreter.get_tensor(output_details[0]['index'])
+    results4 = np.squeeze(output_data4)
+    top_k4 = results4.argsort()[-5:][::-1]
+    print(results4)
+    print(top_k4)
+
+    print("\nSecond D20: ")
+    for i in top_k4:
+        print('{:08.6f}: {}'.format(float(results4[i]), labels[i]))
+
+    # Test with a second D6
+    if classifier_name == "dice_classifier":
+        img5 = tf.keras.utils.load_img(
+            "./image_set/d6_predict2.jpg", target_size=(width, height)
+        )
+    else:
+        img5 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
+
+    img5 = tf.keras.utils.img_to_array(img5)
+
+    input_data5 = tf.expand_dims(img5, axis=0) / 255
+
+    interpreter.set_tensor(input_details[0]['index'], input_data5)
+
+    interpreter.invoke()
+
+    # The function `get_tensor()` returns a copy of the tensor data.
+    # Use `tensor()` in order to get a pointer to the tensor.
+    output_data5 = interpreter.get_tensor(output_details[0]['index'])
+    results5 = np.squeeze(output_data5)
+    top_k5 = results5.argsort()[-5:][::-1]
+    print(results5)
+    print(top_k5)
+
+    print("\nSecond D6: ")
+    for i in top_k5:
+        print('{:08.6f}: {}'.format(float(results5[i]), labels[i]))
