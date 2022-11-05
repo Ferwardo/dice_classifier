@@ -1,3 +1,4 @@
+import numpy
 from PIL import Image
 import numpy as np
 import tensorflow as tf
@@ -14,7 +15,7 @@ def export_preprocessed_image_as_byte_array(image_name, image_dir):
     array = tf.expand_dims(img1, axis=0) / 255
     byte_array = tf.io.serialize_tensor(tf.squeeze(array)).numpy()
 
-    file = open("./image_set/"+image_name+".bin", "wb")
+    file = open("./image_set/" + image_name + ".bin", "wb")
     file.write(byte_array)
     file.close()
     return byte_array
@@ -35,13 +36,13 @@ def predict(classifier_name):
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
     if classifier_name == "dice_classifier":
-        img1 = tf.keras.utils.load_img(
-            "./image_set/dice/predict/d6/d6_predict.jpg", target_size=(width, height)
-        )
+        img1 = tf.keras.utils.load_img("./image_set/dice/predict/d6/d6_predict.jpg", target_size=(width, height))
     else:
         img1 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
 
     img1 = tf.keras.utils.img_to_array(img1)
+
+    print(input_details[0]["dtype"])
 
     input_data1 = tf.expand_dims(img1, axis=0) / 255
 
@@ -65,9 +66,7 @@ def predict(classifier_name):
 
     # Test with a D8 or daisy
     if classifier_name == "dice_classifier":
-        img2 = tf.keras.utils.load_img(
-            "./image_set/dice/predict/d8/d8_predict.jpg", target_size=(width, height)
-        )
+        img2 = tf.keras.utils.load_img("./image_set/dice/predict/d8/d8_predict.jpg", target_size=(width, height))
     else:
         img2 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
 
@@ -93,9 +92,7 @@ def predict(classifier_name):
 
     # Test with a D20
     if classifier_name == "dice_classifier":
-        img3 = tf.keras.utils.load_img(
-            "./image_set/dice/predict/d20/d20_predict.jpg", target_size=(width, height)
-        )
+        img3 = tf.keras.utils.load_img("./image_set/dice/predict/d20/d20_predict.jpg", target_size=(width, height))
     else:
         img3 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
 
@@ -121,9 +118,7 @@ def predict(classifier_name):
 
     # Test with a second D20
     if classifier_name == "dice_classifier":
-        img4 = tf.keras.utils.load_img(
-            "./image_set/d20_predict2.jpg", target_size=(width, height)
-        )
+        img4 = tf.keras.utils.load_img("./image_set/d20_predict2.jpg", target_size=(width, height))
     else:
         img4 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
 
@@ -149,9 +144,7 @@ def predict(classifier_name):
 
     # Test with a second D6
     if classifier_name == "dice_classifier":
-        img5 = tf.keras.utils.load_img(
-            "./image_set/d6_predict2.jpg", target_size=(width, height)
-        )
+        img5 = tf.keras.utils.load_img("./image_set/d6_predict2.jpg", target_size=(width, height))
     else:
         img5 = tf.keras.utils.load_img("./image_set/flowers/roses/download.jpg", target_size=(width, height))
 
