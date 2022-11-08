@@ -42,9 +42,9 @@ validation_data, test_data = data.split(0.7)
 model_spec = image_classifier.ModelSpec(uri="https://tfhub.dev/google/imagenet/mobilenet_v1_025_128/feature_vector/5")
 model_spec.input_image_shape = [230, 230]
 model = image_classifier.create(train_data, validation_data=validation_data, model_spec=model_spec,
-                                use_augmentation=False, epochs=20)
+                                use_augmentation=False, epochs=10)
 
-save_history(model.history, "model_20_epochs.png")
+save_history(model.history, "model_10_epochs.png")
 model.summary()
 
 print("Done training")
