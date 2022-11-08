@@ -6,15 +6,15 @@ from keras.layers import Rescaling, Conv2D, BatchNormalization, MaxPool2D, Dense
 import tensorflow_model_optimization as tfmot
 import keras.regularizers as regularizers
 import matplotlib.pyplot as plt
-from keras.applications import MobileNet
 
+# uncomment this line to never use your nvidia gpu for training or inference
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 # setup
-DICE_DATASET = True
-USE_MOBILENET = False
+DICE_DATASET = True  # whether to use the dice or flower dataset
 EPOCHS = 60
 
+# if we can use a gpu, use a gpu for training or inference
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     try:
@@ -27,10 +27,7 @@ if gpus:
         # Memory growth must be set before GPUs have been initialized
         print(e)
 
-if USE_MOBILENET:
-    image_size = (224, 224)
-else:
-    image_size = (230, 230)
+image_size = (230, 230)
 batch_size = 32
 
 
@@ -47,7 +44,7 @@ def save_history(model_log, filepath):
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Val'], loc='upper left')
-    plt.savefig(filepath)
+    plt.savefig("./plots/"+filepath)
     plt.close()
 
     plt.figure()
@@ -57,7 +54,7 @@ def save_history(model_log, filepath):
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Val'], loc='upper left')
-    plt.savefig("accuracy_" + filepath)
+    plt.savefig("./plots/accuracy_" + filepath)
     plt.close()
 
 
@@ -107,53 +104,50 @@ AUTOTUNE = tf.data.AUTOTUNE
 norm_train_dataset = train_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 norm_test_dataset = test_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 
-if USE_MOBILENET:
-    model = MobileNet((224, 224, 3))
-else:
-    # Define the model, the architecture this model is based on is AlexNet, layers are still based on it but not the
-    # parameters more info see https://dl.acm.org/doi/abs/10.1145/3065386
-    # the original implementation (of alexnet) is found here:
-    # https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98
-    model = tf.keras.models.Sequential([
-        Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(230, 230, 3),
-               kernel_regularizer=regularizers.l2(0.001)),
-        # BatchNormalization(),
+# Define the model, the architecture this model is based on is AlexNet, layers are still based on it but not the
+# parameters more info see https://dl.acm.org/doi/abs/10.1145/3065386
+# the original implementation (of alexnet) is found here:
+# https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98
+model = tf.keras.models.Sequential([
+    Conv2D(filters=32, kernel_size=(5, 5), activation='relu', input_shape=(230, 230, 3),
+           kernel_regularizer=regularizers.l2(0.001)),
+    # BatchNormalization(),
 
-        MaxPool2D(pool_size=(3, 3)),
-        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
-               kernel_regularizer=regularizers.l2(0.001)),
-        # BatchNormalization(),
+    MaxPool2D(pool_size=(3, 3)),
+    Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
+           kernel_regularizer=regularizers.l2(0.001)),
+    # BatchNormalization(),
 
-        MaxPool2D(pool_size=(3, 3)),
-        Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
-               kernel_regularizer=regularizers.l2(0.001)),
-        # BatchNormalization(),
+    MaxPool2D(pool_size=(3, 3)),
+    Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
+           kernel_regularizer=regularizers.l2(0.001)),
+    # BatchNormalization(),
 
-        Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
-               kernel_regularizer=regularizers.l2(0.001)),
-        # BatchNormalization(),
+    Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding="same",
+           kernel_regularizer=regularizers.l2(0.001)),
+    # BatchNormalization(),
 
-        Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
-               kernel_regularizer=regularizers.l2(0.001)),
-        # BatchNormalization(),
+    Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding="same",
+           kernel_regularizer=regularizers.l2(0.001)),
+    # BatchNormalization(),
 
-        MaxPool2D(pool_size=(3, 3)),
-        Flatten(),
-        Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
-        Dropout(0.5),
-        Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
-        Dropout(0.5),
-        Dense(5, activation='softmax')
-    ])
+    MaxPool2D(pool_size=(3, 3)),
+    Flatten(),
+    Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
+    Dropout(0.5),
+    Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
+    Dropout(0.5),
+    Dense(5, activation='softmax')
+])
 
-    # compile and fit
-    model.compile(optimizer="adam",
-                  loss=tf.keras.losses.SparseCategoricalCrossentropy(),
-                  metrics=["accuracy"])
+# compile and fit
+model.compile(optimizer="adam",
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+              metrics=["accuracy"])
 
-    # checkpoint to save the best model weight from the training
-    # checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath="checkpoints/checkpoint.ckpt", save_weights_only=True,
-    #                                                 verbose=1, save_best_only=True)
+# checkpoint to save the best model weight from the training
+# checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath="checkpoints/checkpoint.ckpt", save_weights_only=True,
+#                                                 verbose=1, save_best_only=True)
 
 if DICE_DATASET:
     # this is to balance the classes as otherwise the classification isn't good.
@@ -185,7 +179,7 @@ else:
     )
 model.summary()
 
-save_history(history, 'model_'+str(EPOCHS)+'_epochs.png')
+save_history(history, 'model_' + str(EPOCHS) + '_epochs.png')
 
 # model.save_weights("./checkpoints/checkpoint_1", save_format="tf")
 # model.load_weights("./checkpoints/checkpoint_1")
@@ -206,7 +200,7 @@ quantized_model.compile(optimizer='adam',
 quantized_history = quantized_model.fit(train_dataset, validation_data=test_dataset, shuffle=True, batch_size=32,
                                         epochs=int(EPOCHS / 4))
 print(quantized_model.evaluate(test_dataset, verbose=1))
-save_history(quantized_history, 'quantized_model_'+str(int(EPOCHS/4))+'_epochs.png')
+save_history(quantized_history, 'quantized_model_' + str(int(EPOCHS / 4)) + '_epochs.png')
 quantized_model.save("./quantized_model")
 model.save("./model")
 
